@@ -9,28 +9,3 @@ services:
       POSTGRES_DB:
     ports:
       - 5432:5432
-    deploy:
-      resources:
-        limits:
-          memory: '512M'
-          cpus: '1'
-  todo-actix:
-    build: .
-    links:
-      - postgres
-    environment:
-      SERVER.HOST:
-      SERVER.PORT:
-      PG.USER:
-      PG.PASSWORD:
-      PG.HOST:
-      PG.PORT:
-      PG.DBNAME:
-      PG.POOL.MAX_SIZE:
-    deploy:
-      resources:
-        limits:
-          memory: '1G'
-          cpus: '2'
-    ports:
-      - 8080:8080
