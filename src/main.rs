@@ -2,9 +2,8 @@ mod models;
 mod config;
 mod handlers;
 
-use actix_web::{HttpServer, App, web, Responder};
+use actix_web::{HttpServer, App, web};
 use std::io;
-use crate::models::Status;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
 use crate::handlers::*;
