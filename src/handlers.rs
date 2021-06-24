@@ -2,6 +2,8 @@ use actix_web::{web, Responder, HttpResponse};
 use crate::models::{Status, CreateTodoList, ResultResponse};
 use deadpool_postgres::{Pool,Client};
 use crate::db;
+use std::io::ErrorKind::Other;
+use std::io::Error;
 
 pub async fn status() -> impl Responder{
     HttpResponse::Ok()
@@ -36,12 +38,13 @@ pub async fn create_todo(db_pool: web::Data<Pool>, json: web::Json<CreateTodoLis
     }
 }
 
-pub async fn check_todo(db_pool: web::Data<Pool>, params: web::Path<(i32, i32)>) -> impl Responder {
+pub async fn check_item(db_pool: web::Data<Pool>, params: web::Path<(i32, i32)>) -> impl Responder {
     let client:Client = db_pool.get().await.expect("Error connecting to database");
     let params = params.into_inner();
     let result = db::check_todo(&client, params.0, params.1).await;
     match result {
-        Ok(todo) => HttpResponse::Ok().json(ResultResponse{success: true}),
+        Ok(..) => HttpResponse::Ok().json(ResultResponse{success: true}),
+        Err(ref e) if e.kind() == Other => HttpResponse::Ok().json(ResultResponse{success: false}),
         Err(_) => HttpResponse::InternalServerError().into()
     }
 }
