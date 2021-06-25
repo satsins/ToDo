@@ -10,6 +10,7 @@ use dotenv::dotenv;
 use tokio_postgres::NoTls;
 use crate::handlers::*;
 use slog::{Logger, Drain, o, info};
+use crate::models::AppState;
 
 
 pub fn configure_log() -> Logger {
@@ -31,7 +32,12 @@ async fn main() -> io::Result<()> {
     info!(log, "Starting server at http://{}:{}/", config.server.host, config.server.port);
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .data(
+                AppState{
+                    pool: pool.clone(),
+                    log: log.clone()
+                }
+            )
             .route("api/v1", web::get().to(status))
             .route("api/v1/todos{_:/?}", web::post().to(create_todo))
             .route("api/v1/todos{_:/?}", web::get().to(get_todos))
