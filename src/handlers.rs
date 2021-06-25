@@ -4,47 +4,40 @@ use deadpool_postgres::{Pool,Client};
 use crate::db;
 use std::io::ErrorKind::Other;
 use std::io::Error;
+use crate::errors::{AppError, AppErrorType};
 
 pub async fn status() -> impl Responder{
     HttpResponse::Ok()
         .json(Status {status:"Running".to_string()})
 }
 
-pub async fn get_todos(db_pool: web::Data<Pool>) -> impl Responder{
-    let client:Client = db_pool.get().await.expect("Error connecting to database");
+pub async fn get_todos(db_pool: web::Data<Pool>) -> Result<impl Responder, AppError>{
+    let client:Client = db_pool.get().await.map_err(AppError::db_error)?;
+
     let result = db::get_todos(&client).await;
-    match result {
-        Ok(todos) => HttpResponse::Ok().json(todos),
-        Err(_) => HttpResponse::InternalServerError().into()
-    }
+    result.map(|todos| HttpResponse::Ok().json(todos))
 }
 
-pub async fn get_items(db_pool: web::Data<Pool>, path: web::Path<(i32,)>) -> impl Responder{
-    let client:Client = db_pool.get().await.expect("Error connecting to database");
+pub async fn get_items(db_pool: web::Data<Pool>, path: web::Path<(i32,)>) -> Result<impl Responder, AppError>{
+    let client:Client = db_pool.get().await.map_err(AppError::db_error)?;
+
     let path = path.into_inner();
     let result = db::get_items(&client, path.0).await;
-    match result {
-        Ok(items) => HttpResponse::Ok().json(items),
-        Err(_) => HttpResponse::InternalServerError().into()
-    }
+    result.map(|items| HttpResponse::Ok().json(items))
 }
 
-pub async fn create_todo(db_pool: web::Data<Pool>, json: web::Json<CreateTodoList>) -> impl Responder{
-    let client:Client = db_pool.get().await.expect("Error connecting to database");
+pub async fn create_todo(db_pool: web::Data<Pool>, json: web::Json<CreateTodoList>) -> Result<impl Responder, AppError>{
+    let client:Client = db_pool.get().await.map_err(AppError::db_error)?;
+
     let result = db::create_todo(&client, json.title.clone()).await;
-    match result {
-        Ok(todos) => HttpResponse::Ok().json(todos),
-        Err(_) => HttpResponse::InternalServerError().into()
-    }
+    result.map(|todos| HttpResponse::Ok().json(todos))
+
 }
 
-pub async fn check_item(db_pool: web::Data<Pool>, params: web::Path<(i32, i32)>) -> impl Responder {
-    let client:Client = db_pool.get().await.expect("Error connecting to database");
+pub async fn check_item(db_pool: web::Data<Pool>, params: web::Path<(i32, i32)>) -> Result<impl Responder, AppError> {
+    let client:Client = db_pool.get().await.map_err(AppError::db_error)?;
+
     let params = params.into_inner();
     let result = db::check_todo(&client, params.0, params.1).await;
-    match result {
-        Ok(..) => HttpResponse::Ok().json(ResultResponse{success: true}),
-        Err(ref e) if e.kind() == Other => HttpResponse::Ok().json(ResultResponse{success: false}),
-        Err(_) => HttpResponse::InternalServerError().into()
-    }
+    result.map(|updated| HttpResponse::Ok().json(ResultResponse{success: updated}))
 }
